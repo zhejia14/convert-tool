@@ -512,20 +512,6 @@
                 alert(`❌ 同步失敗：${error.message}\n\n可能原因：\n1. 您未登入 Google 帳戶\n2. 拒絕了權限請求\n3. 網路問題\n\n建議改用「匯出 CSV」方式手動匯入。`);
             }
         }
-            
-            // 建立下載連結
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.setAttribute('href', url);
-            link.setAttribute('download', `班表_${currentYear}-${String(currentMonth).padStart(2, '0')}.csv`);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            alert('班表已匯出為 CSV 檔案！\n\n請在 Google 日曆中：\n1. 點擊左側「其他日曆」\n2. 選擇「匯入」\n3. 上傳此 CSV 檔案');
-        }
         
         // 設定預設月份為當月
         window.addEventListener('DOMContentLoaded', () => {

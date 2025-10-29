@@ -490,25 +490,13 @@
                     description: `班別: ${item.shiftCode}`,
                     allDay: true
                 }));
+            const payload = { events };
+            const url = `${APPS_SCRIPT_URL}?data=${encodeURIComponent(JSON.stringify(payload))}`;
         
-            try {
-                // 改用 GET 請求，將資料編碼到 URL
-                const payload = { events };
-                const jsonString = encodeURIComponent(JSON.stringify(payload));
-                const url = `${APPS_SCRIPT_URL}?data=${jsonString}`;
-        
-                const response = await fetch(url);
-                const result = await response.json();
-        
-                if (result.success) {
-                    alert('✅ 班表已成功同步至您的 Google 日曆！');
-                } else {
-                    throw new Error(result.error || '同步失敗');
-                }
-            } catch (error) {
-                console.error('同步失敗:', error);
-                alert(`❌ 同步失敗：${error.message}\n\n將改用 CSV 匯出。`);
-                exportAsCSV(); // 自動 fallback
+            // ✅ 用新視窗開啟，讓使用者看到進度並完成授權
+            const win = window.open(url, '_blank', 'width=600,height=400');
+            if (!win) {
+                alert('請允許彈出視窗，才能同步到 Google 日曆！');
             }
         }
         

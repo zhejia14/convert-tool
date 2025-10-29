@@ -494,7 +494,7 @@
                     }
                     
                     const endTime = `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
-                    csvContent += `"上班",${item.date},${startTime},${endDay},${endTime},FALSE,"班別: ${item.shiftCode}"\n`;
+                    csvContent += `"上班",${item.date},${startTime},${endDay},${endTime},TRUE,"班別: ${item.shiftCode}"\n`;
                 }
             });
             

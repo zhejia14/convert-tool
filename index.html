@@ -469,19 +469,19 @@
                 return;
             }
         
-            // 🔴 請將下面這行的 URL 替換成你自己的 Apps Script 部署網址！
+           
             const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby287DXsqtCvwjZf6DjWULVnve4ZwUeOH0CGfzr4Eqj1wlUuG-Qm6jsHiTpwgiEezhV_Q/exec';
         
-            if (APPS_SCRIPT_URL.includes('YOUR_DEPLOY_URL')) {
-                alert('❌ 請先設定 Google Apps Script Web App 網址！\n\n請參閱說明文件完成設定。');
+            if (APPS_SCRIPT_URL.includes('YOUR_ACTUAL_DEPLOY_URL') || !APPS_SCRIPT_URL) {
+                alert('❌ Apps Script 網址未設定，改用 CSV 匯出。');
+                exportAsCSV();
                 return;
             }
         
-            if (!confirm('⚠️ 此操作將直接在您的 Google 日曆中建立事件。\n\n班表將以「全天事件」形式新增，標題如「上班08:00」或「放假」。\n\n是否繼續？')) {
+            if (!confirm('⚠️ 此操作將直接在您的 Google 日曆中建立事件。\n是否繼續？')) {
                 return;
             }
         
-            // 準備事件資料
             const events = convertedSchedule
                 .filter(item => !item.time.includes('未知'))
                 .map(item => ({
@@ -492,24 +492,23 @@
                 }));
         
             try {
-                const response = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ events })
-                });
+                // 改用 GET 請求，將資料編碼到 URL
+                const payload = { events };
+                const jsonString = encodeURIComponent(JSON.stringify(payload));
+                const url = `${APPS_SCRIPT_URL}?data=${jsonString}`;
         
+                const response = await fetch(url);
                 const result = await response.json();
         
                 if (result.success) {
-                    alert('✅ 班表已成功同步至您的 Google 日曆！\n\n請檢查您的預設日曆。');
+                    alert('✅ 班表已成功同步至您的 Google 日曆！');
                 } else {
-                    throw new Error(result.error || '未知錯誤');
+                    throw new Error(result.error || '同步失敗');
                 }
             } catch (error) {
                 console.error('同步失敗:', error);
-                alert(`❌ 同步失敗：${error.message}\n\n可能原因：\n1. 您未登入 Google 帳戶\n2. 拒絕了權限請求\n3. 網路問題\n\n建議改用「匯出 CSV」方式手動匯入。`);
+                alert(`❌ 同步失敗：${error.message}\n\n將改用 CSV 匯出。`);
+                exportAsCSV(); // 自動 fallback
             }
         }
         

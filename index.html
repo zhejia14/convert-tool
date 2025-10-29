@@ -463,40 +463,55 @@
             }
         }
         
-        function exportToGoogleCalendar() {
+        async function exportToGoogleCalendar() {
             if (convertedSchedule.length === 0) {
                 alert('請先轉換班表');
                 return;
             }
-            
-            // 產生 CSV 格式的事件資料
-            let csvContent = 'Subject,Start Date,Start Time,End Date,End Time,All Day Event,Description\n';
-            
-            convertedSchedule.forEach(item => {
-                if (item.isHoliday) {
-                    // 放假設為全天事件
-                    csvContent += `"放假",${item.date},,${item.date},,TRUE,"班別: ${item.shiftCode}"\n`;
-                } else if (item.time !== '未知') {
-                    // 工作日設為具體時間的事件
-                    const startTime = item.time;
-                    // 假設工作 8 小時，計算結束時間
-                    const [hours, minutes] = startTime.split(':').map(Number);
-                    let endHours = hours + 8;
-                    let endMinutes = minutes;
-                    let endDay = item.date;
-                    
-                    // 處理跨日情況
-                    if (endHours >= 24) {
-                        endHours -= 24;
-                        const endDate = new Date(item.date);
-                        endDate.setDate(endDate.getDate() + 1);
-                        endDay = endDate.toISOString().split('T')[0];
-                    }
-                    
-                    const endTime = `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
-                    csvContent += `"上班",${item.date},${startTime},${endDay},${endTime},TRUE,"班別: ${item.shiftCode}"\n`;
+        
+            // 🔴 請將下面這行的 URL 替換成你自己的 Apps Script 部署網址！
+            const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby287DXsqtCvwjZf6DjWULVnve4ZwUeOH0CGfzr4Eqj1wlUuG-Qm6jsHiTpwgiEezhV_Q/exec';
+        
+            if (APPS_SCRIPT_URL.includes('YOUR_DEPLOY_URL')) {
+                alert('❌ 請先設定 Google Apps Script Web App 網址！\n\n請參閱說明文件完成設定。');
+                return;
+            }
+        
+            if (!confirm('⚠️ 此操作將直接在您的 Google 日曆中建立事件。\n\n班表將以「全天事件」形式新增，標題如「上班08:00」或「放假」。\n\n是否繼續？')) {
+                return;
+            }
+        
+            // 準備事件資料
+            const events = convertedSchedule
+                .filter(item => !item.time.includes('未知'))
+                .map(item => ({
+                    title: item.isHoliday ? '放假' : `上班${item.time}`,
+                    date: item.date,
+                    description: `班別: ${item.shiftCode}`,
+                    allDay: true
+                }));
+        
+            try {
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ events })
+                });
+        
+                const result = await response.json();
+        
+                if (result.success) {
+                    alert('✅ 班表已成功同步至您的 Google 日曆！\n\n請檢查您的預設日曆。');
+                } else {
+                    throw new Error(result.error || '未知錯誤');
                 }
-            });
+            } catch (error) {
+                console.error('同步失敗:', error);
+                alert(`❌ 同步失敗：${error.message}\n\n可能原因：\n1. 您未登入 Google 帳戶\n2. 拒絕了權限請求\n3. 網路問題\n\n建議改用「匯出 CSV」方式手動匯入。`);
+            }
+        }
             
             // 建立下載連結
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

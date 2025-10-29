@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>班表轉換工具 - 月曆顯示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .card-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #4a5568;
+            text-align: center;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        input[type="month"], textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="month"]:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+            font-family: monospace;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            font-weight: 600;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-google {
+            background: linear-gradient(135deg, #4285F4 0%, #34A853 100%);
+            margin-top: 15px;
+        }
+        
+        /* 月曆樣式 */
+        .calendar {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .calendar-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+        
+        .calendar thead th {
+            padding: 12px;
+            background: #f7fafc;
+            color: #4a5568;
+            font-weight: 600;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .calendar td {
+            width: 14.28%;
+            height: 100px;
+            vertical-align: top;
+            padding: 5px;
+            border: 1px solid #e2e8f0;
+            position: relative;
+        }
+        
+        .calendar-date {
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: #2d3748;
+        }
+        
+        .calendar-shift {
+            font-size: 0.85rem;
+            color: #4a5568;
+        }
+        
+        .calendar-time {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .holiday-cell {
+            background: #fed7d7;
+        }
+        
+        .holiday-cell .calendar-date {
+            color: #c53030;
+        }
+        
+        .holiday-cell .calendar-time {
+            color: #c53030;
+        }
+        
+        .empty-cell {
+            background: #f7fafc;
+            color: #a0aec0;
+        }
+        
+        .info-box {
+            background: #ebf8ff;
+            border-left: 4px solid #4299e1;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .info-box h3 {
+            color: #2b6cb0;
+            margin-bottom: 8px;
+        }
+        
+        .info-box p {
+            color: #4a5568;
+            line-height: 1.5;
+            font-size: 0.9rem;
+        }
+        
+        .note {
+            font-size: 0.9rem;
+            color: #718096;
+            margin-top: 15px;
+            text-align: center;
+        }
+        
+        .calendar-container {
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>班表轉換工具</h1>
+            <p class="subtitle">將班別代碼轉換為對應時間，並以月曆形式顯示</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="card">
+                <h2 class="card-title">輸入班表</h2>
+                <div class="input-group">
+                    <label for="month">選擇年月：</label>
+                    <input type="month" id="month" required>
+                </div>
+                <div class="input-group">
+                    <label for="scheduleInput">輸入班表（用空格或換行分隔）：</label>
+                    <textarea id="scheduleInput" placeholder="/	MW	MX	MW	//	A	A	N	FD	/	MV	MV	//	Q	R	R	/	//	MX	R 	R	/	FD	/	Q	Q 	//	MV	MW	MW"></textarea>
+                </div>
+                <button class="btn" onclick="convertSchedule()">轉換班表</button>
+                <button class="btn btn-google" onclick="exportToGoogleCalendar()" disabled>匯出至 Google 日曆</button>
+                <div class="note">* Google 日曆匯出功能會產生 CSV 檔案供手動匯入</div>
+            </div>
+            
+            <div class="card">
+                <h2 class="card-title">班別對應表</h2>
+                <div class="info-box">
+                    <h3>工作班別</h3>
+                    <p><strong>早班：</strong>MU(04:00) MV(04:30) MW(05:00) MX(05:30) A(06:00) B(06:30) C(07:00) D(07:30) E(08:00) F(08:30) G(09:00) H(09:30)</p>
+                    <p><strong>中班：</strong>I(10:00) J(10:30) K(11:00) L(11:30) M(12:00) N(12:30) O(13:00) P(13:30) Q(14:00) R(14:30) S(15:00) T(15:30)</p>
+                    <p><strong>晚班：</strong>U(16:00) V(16:30) W(17:00) X(17:30) NA(18:00) NB(18:30) NC(19:00) ND(19:30) NE(20:00) NF(20:30)</p>
+                    <p><strong>放假：</strong>FD, /, //</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div id="calendarHeader" class="calendar-header" style="display: none;"></div>
+            <div class="calendar-container">
+                <table id="calendar" class="calendar" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>日</th>
+                            <th>一</th>
+                            <th>二</th>
+                            <th>三</th>
+                            <th>四</th>
+                            <th>五</th>
+                            <th>六</th>
+                        </tr>
+                    </thead>
+                    <tbody id="calendarBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 班別對應表
+        const shiftMapping = {
+            'MU': '04:00',
+            'MV': '04:30',
+            'MW': '05:00',
+            'MX': '05:30',
+            'A': '06:00',
+            'B': '06:30',
+            'C': '07:00',
+            'D': '07:30',
+            'E': '08:00',
+            'F': '08:30',
+            'G': '09:00',
+            'H': '09:30',
+            'I': '10:00',
+            'J': '10:30',
+            'K': '11:00',
+            'L': '11:30',
+            'M': '12:00',
+            'N': '12:30',
+            'O': '13:00',
+            'P': '13:30',
+            'Q': '14:00',
+            'R': '14:30',
+            'S': '15:00',
+            'T': '15:30',
+            'U': '16:00',
+            'V': '16:30',
+            'W': '17:00',
+            'X': '17:30',
+            'NA': '18:00',
+            'NB': '18:30',
+            'NC': '19:00',
+            'ND': '19:30',
+            'NE': '20:00',
+            'NF': '20:30'
+        };
+        
+        // 放假標記
+        const holidayCodes = ['FD', '/', '//'];
+        
+        // 儲存轉換後的結果
+        let convertedSchedule = [];
+        let currentYear, currentMonth;
+        
+        function convertSchedule() {
+            const monthInput = document.getElementById('month').value;
+            const scheduleInput = document.getElementById('scheduleInput').value.trim();
+            
+            if (!monthInput) {
+                alert('請選擇年月');
+                return;
+            }
+            
+            if (!scheduleInput) {
+                alert('請輸入班表');
+                return;
+            }
+            
+            // 解析輸入的班表
+            const shifts = scheduleInput.split(/[\s\n]+/).filter(code => code.trim() !== '');
+            
+            if (shifts.length === 0) {
+                alert('無效的班表輸入');
+                return;
+            }
+            
+            // 解析年月
+            [currentYear, currentMonth] = monthInput.split('-').map(Number);
+            const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+            
+            // 如果班表長度超過該月天數，截斷；如果不足，用放假補齊
+            const processedShifts = [];
+            for (let i = 0; i < daysInMonth; i++) {
+                if (i < shifts.length) {
+                    processedShifts.push(shifts[i]);
+                } else {
+                    processedShifts.push('/');
+                }
+            }
+            
+            // 轉換班表
+            convertedSchedule = [];
+            for (let day = 1; day <= daysInMonth; day++) {
+                const shiftCode = processedShifts[day - 1];
+                let time = '';
+                let isHoliday = false;
+                
+                if (holidayCodes.includes(shiftCode)) {
+                    time = '放假';
+                    isHoliday = true;
+                } else if (shiftMapping[shiftCode]) {
+                    time = shiftMapping[shiftCode];
+                } else {
+                    time = '未知';
+                }
+                
+                convertedSchedule.push({
+                    date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+                    day: day,
+                    shiftCode: shiftCode,
+                    time: time,
+                    isHoliday: isHoliday
+                });
+            }
+            
+            // 顯示月曆
+            displayCalendar();
+            
+            // 啟用 Google 日曆按鈕
+            document.querySelector('.btn-google').disabled = false;
+        }
+        
+        function displayCalendar() {
+            const calendarHeader = document.getElementById('calendarHeader');
+            const calendarTable = document.getElementById('calendar');
+            const calendarBody = document.getElementById('calendarBody');
+            
+            // 顯示月曆標題
+            const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月',
+                              '七月', '八月', '九月', '十月', '十一月', '十二月'];
+            calendarHeader.textContent = `${currentYear} 年 ${monthNames[currentMonth - 1]}`;
+            calendarHeader.style.display = 'block';
+            calendarTable.style.display = 'table';
+            
+            // 清空現有內容
+            calendarBody.innerHTML = '';
+            
+            // 計算該月第一天是星期幾 (0 = Sunday, 1 = Monday, etc.)
+            const firstDay = new Date(currentYear, currentMonth - 1, 1).getDay();
+            
+            // 計算該月天數
+            const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+            
+            // 計算需要顯示的總格子數（包含前後空白）
+            const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+            
+            let dayCounter = 1;
+            
+            // 建立月曆表格
+            for (let i = 0; i < totalCells; i++) {
+                // 每7個格子開始新的一行
+                if (i % 7 === 0) {
+                    const row = document.createElement('tr');
+                    calendarBody.appendChild(row);
+                }
+                
+                const cell = document.createElement('td');
+                const currentRow = calendarBody.lastElementChild;
+                currentRow.appendChild(cell);
+                
+                // 前面的空白格子
+                if (i < firstDay) {
+                    cell.classList.add('empty-cell');
+                    cell.innerHTML = '&nbsp;';
+                }
+                // 月內的日期
+                else if (dayCounter <= daysInMonth) {
+                    const scheduleItem = convertedSchedule[dayCounter - 1];
+                    
+                    if (scheduleItem.isHoliday) {
+                        cell.classList.add('holiday-cell');
+                    }
+                    
+                    cell.innerHTML = `
+                        <div class="calendar-date">${dayCounter}</div>
+                        <div class="calendar-shift">${scheduleItem.shiftCode}</div>
+                        <div class="calendar-time">${scheduleItem.time}</div>
+                    `;
+                    
+                    dayCounter++;
+                }
+                // 後面的空白格子
+                else {
+                    cell.classList.add('empty-cell');
+                    cell.innerHTML = '&nbsp;';
+                }
+            }
+        }
+        
+        function exportToGoogleCalendar() {
+            if (convertedSchedule.length === 0) {
+                alert('請先轉換班表');
+                return;
+            }
+            
+            // 產生 CSV 格式的事件資料
+            let csvContent = 'Subject,Start Date,Start Time,End Date,End Time,All Day Event,Description\n';
+            
+            convertedSchedule.forEach(item => {
+                if (item.isHoliday) {
+                    // 放假設為全天事件
+                    csvContent += `"放假",${item.date},,${item.date},,TRUE,"班別: ${item.shiftCode}"\n`;
+                } else if (item.time !== '未知') {
+                    // 工作日設為具體時間的事件
+                    const startTime = item.time;
+                    // 假設工作 8 小時，計算結束時間
+                    const [hours, minutes] = startTime.split(':').map(Number);
+                    let endHours = hours + 8;
+                    let endMinutes = minutes;
+                    let endDay = item.date;
+                    
+                    // 處理跨日情況
+                    if (endHours >= 24) {
+                        endHours -= 24;
+                        const endDate = new Date(item.date);
+                        endDate.setDate(endDate.getDate() + 1);
+                        endDay = endDate.toISOString().split('T')[0];
+                    }
+                    
+                    const endTime = `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
+                    csvContent += `"上班",${item.date},${startTime},${endDay},${endTime},FALSE,"班別: ${item.shiftCode}"\n`;
+                }
+            });
+            
+            // 建立下載連結
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `班表_${currentYear}-${String(currentMonth).padStart(2, '0')}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            alert('班表已匯出為 CSV 檔案！\n\n請在 Google 日曆中：\n1. 點擊左側「其他日曆」\n2. 選擇「匯入」\n3. 上傳此 CSV 檔案');
+        }
+        
+        // 設定預設月份為當月
+        window.addEventListener('DOMContentLoaded', () => {
+            const today = new Date();
+            const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+            document.getElementById('month').value = defaultMonth;
+        });
+    </script>
+</body>
+</html>
+
